@@ -10,6 +10,26 @@ It answers three questions:
 
 Menu: **状态 → 多 WAN 分流** (`admin/status/wan-flow-monitor`).
 
+## 真实场景展示
+
+下面全部来自实际运行中的 iStoreOS 路由器；“示例数据”表示把同一批真实采样数据载入本地预览页，不是随机生成的流量。
+
+**多 WAN 总览：** 自动发现 `wwan` 与 `wan_sla`、默认出口、LAN / Wi-Fi 网段和路由器进程，并按实测速率绘制拓扑。
+
+![真实双 WAN 流量总览](docs/screenshots/real-data-desktop-overview.png)
+
+**设备路径高亮：** 选中 `Bryan-Desktop` 后，只强调该设备到分流节点，再到 `wwan` / 本地目的地的真实路径；右侧同时显示连接依据和可信度。
+
+![设备到出口的真实路径高亮](docs/screenshots/live-device-path-highlight.png)
+
+**策略与实际出口不一致：** 此 Steam UDP 流量配置为 `wan_sla`，conntrack 观测到实际经 `wwan`，因此以 `!` 标出；展开后可检查规则、NAT / 路由依据和单连接速率。
+
+![策略和实际出口不一致的连接详情](docs/screenshots/live-policy-mismatch.png)
+
+**窄屏布局：** 390 px 宽度下仍保留出口卡片、拓扑、比例条、筛选和设备列表。
+
+![手机宽度下的真实流量快照](docs/screenshots/real-data-mobile.png)
+
 ## What gets discovered automatically
 
 | Object | How it is found |
@@ -50,7 +70,7 @@ Known limits (also shown in the page's 限制 field):
 | Element | Meaning |
 |---|---|
 | Exit cards | Live ↓/↑ rate, device / IP, and the `默认` marker on the default-route line |
-| Topology | Devices on the left → 分流 → exits on the right. Line width = real bytes/s, particle density = real packets/s; a line with no packets has no particles |
+| Topology | Devices on the left → 分流 → exits on the right. Line width = real bytes/s, particle density = real packets/s; a line with no packets has no particles. Click an exit node / line to highlight and filter every device currently using that exit |
 | Ratio bars | Share of external traffic per exit, for each LAN segment and for router processes that use a WAN |
 | Device list | `策略 → 实际`; click a row to expand its connections, click a connection to see the rule, evidence and confidence |
 | Status pill | `● N 秒前` live / `⚠ 已过期` older than 15 s / `⏸ 已暂停` / `⟲ 回放` / `示例数据` (not router data) |
@@ -64,6 +84,7 @@ Controls:
 - Speed cycles through 0.5×/1×/2×/4×.
 - ◐ static mode shows no particles; it is also enabled automatically under `prefers-reduced-motion`.
 - ✕ clears the view.
+- Click an exit node / line on the right to keep only devices with observed traffic on that exit; click it again or press Esc to clear the exit filter.
 
 In the topology, the arrow keys pick a device, Enter selects it and Esc clears the selection.
 
