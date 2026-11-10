@@ -1,0 +1,68 @@
+{
+	"nftables": [
+		{ "metainfo": { "version": "1.1.1", "json_schema_version": 1 } },
+		{
+			"set": {
+				"family": "inet",
+				"table": "fw4",
+				"name": "pbr_wan_sla_4_dst_ip_cfg0b6ff5",
+				"type": "ipv4_addr",
+				"elem": [
+					"155.133.248.52",
+					{ "prefix": { "addr": "162.254.197.0", "len": 24 } },
+					{ "range": [ "23.35.148.136", "23.35.148.140" ] }
+				]
+			}
+		},
+		{
+			"rule": {
+				"family": "inet",
+				"table": "fw4",
+				"chain": "pbr_mark_0x020000",
+				"handle": 20,
+				"expr": [
+					{ "mangle": { "key": { "meta": { "key": "mark" } }, "value": { "|": [ { "&": [ { "meta": { "key": "mark" } }, 4278321151 ] }, 131072 ] } } }
+				]
+			}
+		},
+		{
+			"rule": {
+				"family": "inet",
+				"table": "fw4",
+				"chain": "pbr_prerouting",
+				"handle": 101,
+				"comment": "Steam game UDP/P2P via high SLA",
+				"expr": [
+					{ "match": { "op": "==", "left": { "payload": { "protocol": "udp", "field": "dport" } }, "right": { "set": [ 3478, { "range": [ 27000, 27250 ] } ] } } },
+					{ "goto": { "target": "pbr_mark_0x020000" } }
+				]
+			}
+		},
+		{
+			"rule": {
+				"family": "inet",
+				"table": "fw4",
+				"chain": "pbr_prerouting",
+				"handle": 102,
+				"comment": "Steam service domains via high SLA",
+				"expr": [
+					{ "match": { "op": "==", "left": { "payload": { "protocol": "ip", "field": "daddr" } }, "right": "@pbr_wan_sla_4_dst_ip_cfg0b6ff5" } },
+					{ "goto": { "target": "pbr_mark_0x020000" } }
+				]
+			}
+		},
+		{
+			"rule": {
+				"family": "inet",
+				"table": "fw4",
+				"chain": "pbr_prerouting",
+				"handle": 103,
+				"comment": "Peace Elite gaming device via high SLA",
+				"expr": [
+					{ "match": { "op": "==", "left": { "payload": { "protocol": "ether", "field": "saddr" } }, "right": { "set": [ "a8:72:4d:98:fd:cd", "cc:60:23:4b:a1:ea", "e8:6c:c7:7f:1a:d6" ] } } },
+					{ "goto": { "target": "pbr_mark_0x020000" } }
+				]
+			}
+		}
+	]
+}

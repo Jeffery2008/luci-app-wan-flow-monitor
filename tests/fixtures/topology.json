@@ -1,0 +1,72 @@
+{
+	"dump": {
+		"interface": [
+			{ "interface": "guest", "up": true, "proto": "static", "device": "br-guest", "l3_device": "br-guest",
+			  "ipv4-address": [ { "address": "10.20.0.1", "mask": 24 } ], "ipv6-address": [],
+			  "ipv6-prefix-assignment": [ { "address": "2001:db8:20::", "mask": 64 } ], "route": [] },
+			{ "interface": "lan", "up": true, "proto": "static", "device": "br-lan", "l3_device": "br-lan",
+			  "ipv4-address": [ { "address": "10.10.0.1", "mask": 24 } ], "ipv6-address": [],
+			  "ipv6-prefix-assignment": [ { "address": "2001:db8:10::", "mask": 64 } ], "route": [] },
+			{ "interface": "loopback", "up": true, "proto": "static", "device": "lo", "l3_device": "lo",
+			  "ipv4-address": [ { "address": "127.0.0.1", "mask": 8 } ], "route": [] },
+			{ "interface": "lte", "up": true, "proto": "qmi", "device": "wwan0", "l3_device": "wwan0", "metric": 20,
+			  "ipv4-address": [ { "address": "100.80.1.2", "mask": 30 } ], "ipv6-address": [],
+			  "route": [ { "target": "0.0.0.0", "mask": 0, "nexthop": "100.80.1.1" } ] },
+			{ "interface": "spare", "up": false, "proto": "dhcp", "device": "eth3", "route": [] },
+			{ "interface": "wan", "up": true, "proto": "dhcp", "device": "eth1", "l3_device": "eth1", "metric": 10,
+			  "ipv4-address": [ { "address": "203.0.113.10", "mask": 24 } ], "ipv6-address": [],
+			  "route": [ { "target": "0.0.0.0", "mask": 0, "nexthop": "203.0.113.1" } ] },
+			{ "interface": "wan6", "up": true, "proto": "dhcpv6", "device": "eth1", "l3_device": "eth1",
+			  "ipv4-address": [], "ipv6-address": [ { "address": "2001:db8:ffff::10", "mask": 64 } ],
+			  "route": [ { "target": "::", "mask": 0, "nexthop": "fe80::1" } ] }
+		]
+	},
+	"config": {
+		"zones": [
+			{ "name": "lan", "networks": [ "lan" ] },
+			{ "name": "guest", "networks": [ "guest" ] },
+			{ "name": "wan", "networks": [ "wan", "wan6", "lte" ], "masq": "1" }
+		],
+		"dhcp": [
+			{ "interface": "lan" },
+			{ "interface": "guest" },
+			{ "interface": "wan", "ignore": "1" }
+		],
+		"hosts": [
+			{ "name": "nas", "mac": [ "AA:BB:CC:00:00:02" ], "ip": "10.10.0.20" }
+		],
+		"pbr": {
+			"enabled": "1",
+			"policies": [
+				{ ".name": "p0", "name": "Local stays local", "interface": "ignore", "dest_addr": "10.0.0.0/8" },
+				{ ".name": "p1", "name": "Console via LTE", "interface": "lte", "src_addr": "AA:BB:CC:00:00:01" },
+				{ ".name": "p2", "name": "VPN that does not exist", "interface": "vpn", "src_addr": "10.10.0.0/24" }
+			]
+		},
+		"mwan3": {
+			"enabled": true,
+			"interfaces": [ { ".name": "wan" }, { ".name": "lte" } ],
+			"members": [
+				{ ".name": "wan_m1", "interface": "wan", "metric": "1" },
+				{ ".name": "lte_m1", "interface": "lte", "metric": "1" },
+				{ ".name": "lte_m2", "interface": "lte", "metric": "2" }
+			],
+			"policies": [
+				{ ".name": "balanced", "use_member": [ "wan_m1", "lte_m1" ] },
+				{ ".name": "wan_first", "use_member": [ "wan_m1", "lte_m2" ] }
+			],
+			"rules": [
+				{ ".name": "https", "proto": "tcp", "dest_port": "443", "use_policy": "balanced" },
+				{ ".name": "default_rule", "dest_ip": "0.0.0.0/0", "use_policy": "wan_first" }
+			]
+		}
+	},
+	"routes": [
+		{ "family": "ipv4", "destination": "default", "device": "eth1", "metric": 10, "table": "main", "type": "unicast" },
+		{ "family": "ipv4", "destination": "default", "device": "wwan0", "metric": 20, "table": "main", "type": "unicast" },
+		{ "family": "ipv4", "destination": "198.51.100.0/24", "device": "wwan0", "metric": 0, "table": "main", "type": "unicast" },
+		{ "family": "ipv4", "destination": "10.10.0.0/24", "device": "br-lan", "metric": 0, "table": "main", "type": "unicast" },
+		{ "family": "ipv6", "destination": "default", "device": "eth1", "metric": 512, "table": "main", "type": "unicast" },
+		{ "family": "ipv4", "destination": "10.10.0.1", "device": "br-lan", "table": "local", "type": "local" }
+	]
+}

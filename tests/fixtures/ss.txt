@@ -1,0 +1,3 @@
+tcp ESTAB 0 0 100.64.1.2:49821 198.51.100.77:51413 users:(("qbittorrent-nox",pid=2345,fd=41))
+tcp ESTAB 0 0 203.0.113.10:55555 198.51.100.88:42000 users:(("qbittorrent-nox",pid=2345,fd=42))
+tcp ESTAB 0 0 192.168.1.1:22 192.168.1.20:60100 users:(("dropbear",pid=1200,fd=8))

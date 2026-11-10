@@ -1,0 +1,12 @@
+[
+	{
+		"priority": 10000,
+		"fwmark": "0x10000",
+		"fwmask": "0xff0000",
+		"table": "100"
+	},
+	{
+		"priority": 32766,
+		"table": "main"
+	}
+]

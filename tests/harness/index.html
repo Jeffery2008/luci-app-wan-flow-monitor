@@ -1,0 +1,107 @@
+<!doctype html>
+<!--
+  Local preview of the LuCI view without a router login.
+  Data comes from tests/harness/.local/*.json (captured with ubus, git-ignored)
+  and is always marked as 示例数据 on the page.
+  Run:  python -m http.server 8765   (from the repository root)
+  Open: http://localhost:8765/tests/harness/
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WAN 分流 · 本地预览</title>
+<style>
+	body { margin: 0; padding: 16px; font: 14px/1.5 system-ui, sans-serif; color: #2b2f36; background: #fff; }
+	body.dark { color: #e6e9ef; background: #1b1e24; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+'use strict';
+
+var RES = '../../htdocs/luci-static/resources/';
+var DATA = '.local/';
+
+window.L = { resource: function(path) { return RES + path; } };
+
+if (/dark/.test(location.search))
+	document.body.className = 'dark';
+
+function extend(proto) {
+	function Class() {}
+	Class.prototype = proto;
+	Class.extend = extend;
+	return Class;
+}
+
+function fixture(name) {
+	return fetch(DATA + name).then(function(r) { return r.ok ? r.json() : {}; });
+}
+
+/* Fixture data is re-stamped as fresh but explicitly not production data. */
+function fresh(data) {
+	var now = Math.floor(Date.now() / 1000);
+	var shift = now - (data.generatedAt || now);
+	data.generatedAt = now;
+	data.dataTimestamp = (data.dataTimestamp || now) + shift;
+	data.dataSource = 'fixture';
+	data.productionData = false;
+	return data;
+}
+
+var shims = {
+	baseclass: { extend: extend },
+	view: { extend: extend },
+	poll: { add: function(fn, seconds) { setInterval(fn, seconds * 1000); } },
+	rpc: {
+		declare: function(spec) {
+			return function(arg) {
+				if (spec.method == 'overview')
+					return fixture('overview.json').then(fresh);
+				if (spec.method == 'history')
+					return fixture('history.json');
+				if (spec.method == 'device_flows')
+					return fixture('flows-' + String(arg).replace(/:/g, '_') + '.json');
+				return Promise.resolve({});
+			};
+		}
+	}
+};
+
+function loadModule(path) {
+	return fetch(RES + path + '.js').then(function(r) { return r.text(); }).then(function(source) {
+		var names = [], deps = [], pending = [];
+		source.replace(/'require ([\w\-\/]+)(?: as (\w+))?';/g, function(_, mod, alias) {
+			names.push(alias || mod);
+			if (shims[mod])
+				deps.push(shims[mod]);
+			else
+				pending.push(loadModule(mod).then(function(Class) {
+					var instance = new Class();
+					/* Expose the canvas animator so preview checks can click exact node positions. */
+					if (typeof instance.create == 'function') {
+						var create = instance.create;
+						instance.create = function() { return (window.__animator = create.apply(instance, arguments)); };
+					}
+					deps[names.indexOf(alias || mod)] = instance;
+				}), deps.push(null));
+		});
+		return Promise.all(pending).then(function() {
+			return Function.apply(null, names.concat([ source ])).apply(null, deps);
+		});
+	});
+}
+
+loadModule('view/wan-flow-monitor/overview').then(function(View) {
+	var instance = new View();
+	return Promise.resolve(instance.load()).then(function(data) {
+		document.getElementById('app').appendChild(instance.render(data));
+	});
+}).catch(function(error) {
+	document.getElementById('app').textContent = String(error && error.stack || error);
+});
+</script>
+</body>
+</html>

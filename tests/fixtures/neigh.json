@@ -1,0 +1,26 @@
+[
+	{
+		"dst": "192.168.1.20",
+		"dev": "br-lan",
+		"lladdr": "cc:60:23:4b:a1:ea",
+		"state": ["REACHABLE"]
+	},
+	{
+		"dst": "192.168.1.21",
+		"dev": "br-lan",
+		"lladdr": "e8:6c:c7:7f:1a:d6",
+		"state": ["STALE"]
+	},
+	{
+		"dst": "192.168.200.47",
+		"dev": "br-vlan200",
+		"lladdr": "a8:72:4d:98:fd:cd",
+		"state": ["REACHABLE"]
+	},
+	{
+		"dst": "fd00:200::47",
+		"dev": "br-vlan200",
+		"lladdr": "a8:72:4d:98:fd:cd",
+		"state": ["REACHABLE"]
+	}
+]

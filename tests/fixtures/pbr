@@ -1,0 +1,29 @@
+config pbr 'config'
+	option enabled '1'
+
+config policy
+	option name 'Steam game ports'
+	option interface 'wan_sla'
+	option proto 'tcp udp'
+	option dest_port '27000-27100'
+
+config policy
+	option name 'Steam service domains'
+	option interface 'wan_sla'
+	list dest_addr 'steampowered.com'
+	list dest_addr 'steamcontent.com'
+
+config policy
+	option name 'Gaming PC preferred SLA'
+	option interface 'wan_sla'
+	option src_addr 'CC:60:23:4B:A1:EA'
+
+config policy
+	option name 'Console preferred SLA'
+	option interface 'wan_sla'
+	option src_addr 'E8:6C:C7:7F:1A:D6'
+
+config policy
+	option name 'Paid WiFi laptop preferred SLA'
+	option interface 'wan_sla'
+	option src_addr 'A8:72:4D:98:FD:CD'

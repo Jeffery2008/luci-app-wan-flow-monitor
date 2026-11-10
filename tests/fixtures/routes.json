@@ -1,0 +1,26 @@
+[
+	{
+		"dst": "default",
+		"gateway": "100.64.1.1",
+		"dev": "wwan0",
+		"protocol": "static",
+		"metric": 10,
+		"table": "main",
+		"prefsrc": "100.64.1.2"
+	},
+	{
+		"dst": "default",
+		"gateway": "203.0.113.1",
+		"dev": "eth0",
+		"protocol": "static",
+		"metric": 20,
+		"table": "100",
+		"prefsrc": "203.0.113.10"
+	},
+	{
+		"dst": "192.168.200.0/24",
+		"dev": "br-vlan200",
+		"protocol": "kernel",
+		"table": "main"
+	}
+]

@@ -1,0 +1,15 @@
+{
+	"luci-app-wan-flow-monitor": {
+		"description": "只读访问 WAN 分流监控数据",
+		"read": {
+			"ubus": {
+				"wan_flow_monitor": [
+					"overview",
+					"history",
+					"device_flows",
+					"health"
+				]
+			}
+		}
+	}
+}

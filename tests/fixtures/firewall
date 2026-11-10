@@ -1,0 +1,27 @@
+config defaults
+	option input 'REJECT'
+	option output 'ACCEPT'
+	option forward 'REJECT'
+
+config zone
+	option name 'lan'
+	list network 'lan'
+	option input 'ACCEPT'
+	option output 'ACCEPT'
+	option forward 'ACCEPT'
+
+config zone
+	option name 'vlan200'
+	list network 'vlan200'
+	option input 'REJECT'
+	option output 'ACCEPT'
+	option forward 'REJECT'
+
+config zone
+	option name 'wan'
+	list network 'wwan'
+	list network 'wan_sla'
+	option masq '1'
+	option input 'REJECT'
+	option output 'ACCEPT'
+	option forward 'REJECT'

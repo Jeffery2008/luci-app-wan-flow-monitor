@@ -1,0 +1,101 @@
+name: Build and release
+
+on:
+  push:
+    branches: [master, main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - x86_64
+          - i386_pentium4
+          - aarch64_generic
+          - aarch64_cortex-a53
+          - aarch64_cortex-a72
+          - aarch64_cortex-a76
+          - arm_cortex-a7_neon-vfpv4
+          - arm_cortex-a9_neon
+          - arm_cortex-a15_neon-vfpv4
+          - mips_24kc
+          - mipsel_24kc
+          - riscv64_riscv64
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # The feed scanner only sees packages in a subdirectory, and this
+      # repository is itself the package.
+      - name: Prepare feed
+        run: |
+          mkdir -p feed/luci-app-wan-flow-monitor
+          cp -a Makefile htdocs root feed/luci-app-wan-flow-monitor/
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            version="${GITHUB_REF_NAME#v}"
+            sed -i "s/^PKG_VERSION:=.*/PKG_VERSION:=${version}/" feed/luci-app-wan-flow-monitor/Makefile
+          fi
+
+      - name: Build
+        uses: openwrt/gh-action-sdk@main
+        env:
+          ARCH: ${{ matrix.arch }}-openwrt-24.10
+          FEED_DIR: ${{ github.workspace }}/feed
+          FEEDNAME: wanflow
+          PACKAGES: luci-app-wan-flow-monitor
+          INDEX: 1
+          NO_REFRESH_CHECK: true
+
+      - name: Collect packages
+        run: |
+          mkdir -p dist
+          feed="bin/packages/${{ matrix.arch }}/wanflow"
+          test -d "$feed"
+          # PKGARCH=all, so every SDK emits the same ipk. Publish it once.
+          if [ "${{ matrix.arch }}" = "x86_64" ]; then
+            cp "$feed"/luci-app-wan-flow-monitor_*.ipk dist/
+          fi
+          tar -czf "dist/luci-app-wan-flow-monitor_${{ matrix.arch }}_openwrt-24.10.tar.gz" -C "$feed" .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: openwrt-24.10-${{ matrix.arch }}
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: release/*
+          body: |
+            OpenWrt 24.10 builds. The `.ipk` is architecture-independent (`PKGARCH=all`) and installs on every target.
+
+            Each `*_openwrt-24.10.tar.gz` is an opkg feed for that SDK, containing the same ipk plus the package index.
+
+            ```sh
+            opkg install luci-app-wan-flow-monitor_*.ipk
+            /etc/init.d/rpcd restart
+            ```
