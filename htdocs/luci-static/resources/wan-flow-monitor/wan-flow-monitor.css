@@ -241,7 +241,15 @@ header.bg-primary ~ #maincontent .wfm-head .wfm-status {
 }
 .wfm-row-head:hover { background: none; }
 .wfm-row-head span:last-child { text-align: right; }
+.wfm-who { display: grid; min-width: 0; }
 .wfm-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wfm-meta {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--wfm-muted);
+	font-size: 11px;
+}
 .wfm-route { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .wfm-arrow { color: var(--wfm-muted); }
 .wfm-rate { text-align: right; font-size: 12px; white-space: nowrap; }
@@ -323,7 +331,7 @@ header.bg-primary ~ #maincontent .wfm-head .wfm-status {
 	.wfm-wan, .wfm-card { padding: 10px; }
 	.wfm-wan-rate { font-size: 1rem; }
 	.wfm-row { grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; }
-	.wfm-row .wfm-name { grid-column: 1 / -1; }
+	.wfm-row .wfm-who { grid-column: 1 / -1; }
 	.wfm-row-head { display: none; }
 	.wfm-flow { grid-template-columns: 32px minmax(0, 1fr) auto; }
 	.wfm-flow .wfm-rate { display: none; }

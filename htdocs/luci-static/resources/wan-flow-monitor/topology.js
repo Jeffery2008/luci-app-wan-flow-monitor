@@ -92,7 +92,7 @@ function Animator(canvas, options) {
 Animator.prototype = {
 	/*
 	 * model.exits:   [{ id, label, color }] in display order
-	 * model.devices: [{ key, name, path, mismatch }] already ordered
+	 * model.devices: [{ key, name, mac, path, mismatch }] already ordered
 	 * model.links:   [{ device, path, bps, pps, flows, ratio }]
 	 */
 	setData: function(model) {
@@ -583,7 +583,7 @@ Animator.prototype = {
 			return null;
 
 		if (hit.type == 'device')
-			return hit.device.name;
+			return hit.device.name + (hit.device.mac && hit.device.mac != hit.device.name ? ' · ' + hit.device.mac : '');
 
 		if (hit.type == 'exit') {
 			var count = this.devicesOn(hit.path).length;

@@ -18,7 +18,7 @@ var callHistory = rpc.declare({ object: 'wan_flow_monitor', method: 'history', p
 var callDeviceFlows = rpc.declare({ object: 'wan_flow_monitor', method: 'device_flows', params: [ 'device' ], expect: { '': {} } });
 
 /* Bump with every stylesheet change: uhttpd sends no Cache-Control for static files. */
-var ASSET_VERSION = '1.1.0';
+var ASSET_VERSION = '1.2.0';
 var POLL_SECONDS = 5;
 var STALE_SECONDS = 15;
 var SPEEDS = [ 0.5, 1, 2, 4 ];
@@ -174,7 +174,7 @@ function canvasModel(rows, exits, limit, stale) {
 	var links = [];
 
 	shown.forEach(function(row) {
-		devices.push({ key: row.key, name: row.name, path: row.observed, mismatch: row.mismatch > 0 });
+		devices.push({ key: row.key, name: row.name, mac: row.mac, path: row.observed, mismatch: row.mismatch > 0 });
 		links = links.concat(linksOf(row));
 	});
 
@@ -197,13 +197,13 @@ function canvasModel(rows, exits, limit, stale) {
 }
 
 /* Ring-buffer sample (one link per device × exit) -> rows for canvasModel. */
-function replayRows(sample, segment, paths) {
+function replayRows(sample, segment, paths, macs) {
 	var rows = {};
 
 	(sample.links || []).forEach(function(link) {
 		if (!(link.bps > 0) || (segment != 'all' && link.segment != segment))
 			return;
-		var row = rows[link.device] || (rows[link.device] = { key: link.device, name: link.name, bps: 0, paths: {}, mismatch: 0 });
+		var row = rows[link.device] || (rows[link.device] = { key: link.device, name: link.name, mac: macs[link.device] || '', bps: 0, paths: {}, mismatch: 0 });
 		row.paths[link.path] = { bps: link.bps, pps: link.pps, flows: link.flows };
 		row.bps += link.bps;
 		row.mismatch += link.mismatch || 0;
@@ -438,7 +438,9 @@ return view.extend({
 				self.announce('历史数据不足，稍后再试');
 				return;
 			}
-			s.replay = { samples: samples, index: 0, timer: null };
+			var macs = {};
+			(s.rows || []).forEach(function(row) { if (row.mac) macs[row.key] = row.mac; });
+			s.replay = { samples: samples, index: 0, timer: null, macs: macs };
 			self.syncButtons();
 			self.playFrame();
 		});
@@ -460,7 +462,7 @@ return view.extend({
 		var sample = replay.samples[replay.index];
 		var next = replay.samples[replay.index + 1];
 
-		this.topology.setData(canvasModel(replayRows(sample, s.segment, s.paths), s.paths.exits, this.deviceLimit(), false));
+		this.topology.setData(canvasModel(replayRows(sample, s.segment, s.paths, replay.macs), s.paths.exits, this.deviceLimit(), false));
 		this.renderStatus();
 
 		var gap = next ? Math.max(1, next.timestamp - sample.timestamp) : POLL_SECONDS;
@@ -696,6 +698,7 @@ return view.extend({
 		var selected = s.selected == row.key;
 		var idle = row.connections == 0;
 		var tag = KIND[row.kind] || (s.segment == 'all' ? this.segmentName(row.segment) : '');
+		var meta = row.mac ? [ row.ip, row.mac ].filter(function(value) { return value && value != row.name; }).join(' · ') : '';
 
 		var line = h('button', {
 			type: 'button',
@@ -703,10 +706,13 @@ return view.extend({
 			'aria-expanded': selected ? 'true' : 'false',
 			onclick: function() { self.select(selected ? null : row.key, false); }
 		}, [
-			h('span', { 'class': 'wfm-name' }, [
-				row.mismatch ? h('b', { 'class': 'wfm-warn', title: row.mismatch + ' 条连接与策略不一致' }, '! ') : null,
-				h('span', {}, row.name),
-				tag ? h('small', { 'class': 'wfm-muted' }, ' ' + tag) : null
+			h('span', { 'class': 'wfm-who' }, [
+				h('span', { 'class': 'wfm-name' }, [
+					row.mismatch ? h('b', { 'class': 'wfm-warn', title: row.mismatch + ' 条连接与策略不一致' }, '! ') : null,
+					h('span', {}, row.name),
+					tag ? h('small', { 'class': 'wfm-muted' }, ' ' + tag) : null
+				]),
+				meta ? h('small', { 'class': 'wfm-meta' }, meta) : null
 			]),
 			h('span', { 'class': 'wfm-route' }, [
 				s.paths.configuredChip(row.configured),
@@ -858,6 +864,7 @@ return view.extend({
 
 		[
 			row('设备', flow.device && flow.device.name),
+			row('MAC', flow.device && flow.device.mac),
 			row('目的', target),
 			row('协议', String(flow.protocol || '').toUpperCase() + ' · ' + (flow.family == 'ipv6' ? 'IPv6' : 'IPv4') + (flow.direction == 'inbound' ? ' · 入站' : '')),
 			row('策略', [ s.paths.configuredChip(configured), ' ', rule ]),
